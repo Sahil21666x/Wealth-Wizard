@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -8,18 +9,87 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Eye, EyeOff, DollarSign, TrendingUp, Shield } from "lucide-react"
 
+const API_BASE_URL = 'http://localhost:5000/api'
+
 export default function LoginPage({ onLogin }) {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate API call
-    setTimeout(() => {
+    setError('')
+
+    const formData = new FormData(e.target)
+    const email = formData.get('email')
+    const password = formData.get('password')
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Store token in localStorage
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+        onLogin(data.user)
+      } else {
+        setError(data.message || 'Login failed')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
+    } finally {
       setIsLoading(false)
-      onLogin()
-    }, 1500)
+    }
+  }
+
+  const handleRegister = async (e) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError('')
+
+    const formData = new FormData(e.target)
+    const firstName = formData.get('firstName')
+    const lastName = formData.get('lastName')
+    const email = formData.get('registerEmail')
+    const password = formData.get('registerPassword')
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          name: `${firstName} ${lastName}`, 
+          email, 
+          password 
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Store token in localStorage
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+        onLogin(data.user)
+      } else {
+        setError(data.message || 'Registration failed')
+      }
+    } catch (err) {
+      setError('Network error. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -33,7 +103,7 @@ export default function LoginPage({ onLogin }) {
                 <DollarSign className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                FinanceAI
+                Wealth Wizard
               </h1>
             </div>
             <p className="text-xl text-gray-600">Your AI-powered personal finance companion</p>
@@ -70,13 +140,19 @@ export default function LoginPage({ onLogin }) {
                 <DollarSign className="w-5 h-5 text-white" />
               </div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                FinanceAI
+                Wealth Wizard
               </h1>
             </div>
             <CardTitle className="text-2xl">Welcome</CardTitle>
             <CardDescription>Sign in to your account or create a new one</CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                {error}
+              </div>
+            )}
+            
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
@@ -84,16 +160,17 @@ export default function LoginPage({ onLogin }) {
               </TabsList>
 
               <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="Enter your email" required />
+                    <Input id="email" name="email" type="email" placeholder="Enter your email" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
                       <Input
                         id="password"
+                        name="password"
                         type={showPassword ? "text" : "password"}
                         placeholder="Enter your password"
                         required
@@ -116,26 +193,27 @@ export default function LoginPage({ onLogin }) {
               </TabsContent>
 
               <TabsContent value="register" className="space-y-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleRegister} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" placeholder="John" required />
+                      <Input id="firstName" name="firstName" placeholder="John" required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" placeholder="Doe" required />
+                      <Input id="lastName" name="lastName" placeholder="Doe" required />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="registerEmail">Email</Label>
-                    <Input id="registerEmail" type="email" placeholder="Enter your email" required />
+                    <Input id="registerEmail" name="registerEmail" type="email" placeholder="Enter your email" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="registerPassword">Password</Label>
                     <div className="relative">
                       <Input
                         id="registerPassword"
+                        name="registerPassword"
                         type={showPassword ? "text" : "password"}
                         placeholder="Create a password"
                         required
