@@ -215,3 +215,67 @@ async function getSpendingTrends(userId, period, category) {
 }
 
 module.exports = router;
+const express = require('express');
+const authMiddleware = require('../middleware/auth');
+const Transaction = require('../models/Transaction');
+const aiService = require('../services/aiService');
+
+const router = express.Router();
+
+// Get spending insights
+router.get('/spending', authMiddleware, async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ 
+      userId: req.user._id 
+    }).sort({ date: -1 }).limit(100);
+
+    const insights = {
+      spendingPrediction: await aiService.predictSpending(transactions),
+      anomalies: await aiService.detectAnomalies(transactions),
+      patterns: aiService.analyzeSpendingPatterns(transactions)
+    };
+
+    res.json(insights);
+  } catch (error) {
+    console.error('Error getting insights:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get category insights
+router.get('/categories', authMiddleware, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const matchStage = { 
+      userId: req.user._id,
+      type: 'expense'
+    };
+    
+    if (startDate || endDate) {
+      matchStage.date = {};
+      if (startDate) matchStage.date.$gte = new Date(startDate);
+      if (endDate) matchStage.date.$lte = new Date(endDate);
+    }
+
+    const categoryInsights = await Transaction.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$category.primary',
+          totalAmount: { $sum: '$amount' },
+          count: { $sum: 1 },
+          avgAmount: { $avg: '$amount' }
+        }
+      },
+      { $sort: { totalAmount: -1 } }
+    ]);
+
+    res.json(categoryInsights);
+  } catch (error) {
+    console.error('Error getting category insights:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;

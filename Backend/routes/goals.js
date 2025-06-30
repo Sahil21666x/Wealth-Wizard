@@ -188,3 +188,93 @@ router.get('/:id/analytics', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+const express = require('express');
+const Goal = require('../models/Goal');
+const authMiddleware = require('../middleware/auth');
+
+const router = express.Router();
+
+// Get all goals for user
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const goals = await Goal.find({ userId: req.user._id }).sort({ createdAt: -1 });
+    res.json(goals);
+  } catch (error) {
+    console.error('Error fetching goals:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create new goal
+router.post('/', authMiddleware, async (req, res) => {
+  try {
+    const { title, targetAmount, deadline, category } = req.body;
+
+    const goal = new Goal({
+      userId: req.user._id,
+      title,
+      targetAmount,
+      currentAmount: 0,
+      deadline: new Date(deadline),
+      category,
+      status: 'active'
+    });
+
+    await goal.save();
+    res.status(201).json({ message: 'Goal created successfully', goal });
+  } catch (error) {
+    console.error('Error creating goal:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update goal progress
+router.put('/:id/progress', authMiddleware, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    
+    const goal = await Goal.findOne({
+      _id: req.params.id,
+      userId: req.user._id
+    });
+
+    if (!goal) {
+      return res.status(404).json({ message: 'Goal not found' });
+    }
+
+    goal.currentAmount += amount;
+    
+    // Check if goal is completed
+    if (goal.currentAmount >= goal.targetAmount) {
+      goal.status = 'completed';
+      goal.completedAt = new Date();
+    }
+
+    await goal.save();
+    res.json({ message: 'Goal updated successfully', goal });
+  } catch (error) {
+    console.error('Error updating goal:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete goal
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const goal = await Goal.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user._id
+    });
+
+    if (!goal) {
+      return res.status(404).json({ message: 'Goal not found' });
+    }
+
+    res.json({ message: 'Goal deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting goal:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;

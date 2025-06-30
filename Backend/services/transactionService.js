@@ -124,3 +124,115 @@ module.exports = {
   calculateMonthlySpending,
   calculateCategorySpending
 };
+const Transaction = require('../models/Transaction');
+
+class TransactionService {
+  // Categorize transaction automatically
+  static categorizeTransaction(description, amount) {
+    const desc = description.toLowerCase();
+    
+    // Simple rule-based categorization
+    if (desc.includes('grocery') || desc.includes('supermarket') || desc.includes('food')) {
+      return { primary: 'Food & Dining', secondary: 'Groceries' };
+    }
+    
+    if (desc.includes('gas') || desc.includes('fuel') || desc.includes('exxon') || desc.includes('shell')) {
+      return { primary: 'Transportation', secondary: 'Gas' };
+    }
+    
+    if (desc.includes('restaurant') || desc.includes('cafe') || desc.includes('bar')) {
+      return { primary: 'Food & Dining', secondary: 'Restaurants' };
+    }
+    
+    if (desc.includes('amazon') || desc.includes('shopping') || desc.includes('retail')) {
+      return { primary: 'Shopping', secondary: 'General' };
+    }
+    
+    if (desc.includes('netflix') || desc.includes('spotify') || desc.includes('subscription')) {
+      return { primary: 'Entertainment', secondary: 'Subscriptions' };
+    }
+    
+    if (desc.includes('electric') || desc.includes('water') || desc.includes('utility')) {
+      return { primary: 'Bills & Utilities', secondary: 'Utilities' };
+    }
+    
+    if (desc.includes('rent') || desc.includes('mortgage')) {
+      return { primary: 'Home', secondary: 'Rent & Mortgage' };
+    }
+    
+    if (desc.includes('salary') || desc.includes('payroll') || desc.includes('income')) {
+      return { primary: 'Income', secondary: 'Salary' };
+    }
+    
+    // Default category
+    return { primary: 'Other', secondary: 'Miscellaneous' };
+  }
+
+  // Process and save transactions
+  static async processTransactions(userId, transactions) {
+    const processedTransactions = [];
+    
+    for (const txn of transactions) {
+      try {
+        // Check if transaction already exists
+        const existingTxn = await Transaction.findOne({
+          userId,
+          accountId: txn.account_id,
+          transactionId: txn.transaction_id
+        });
+        
+        if (existingTxn) {
+          continue; // Skip if already exists
+        }
+        
+        // Categorize transaction
+        const category = this.categorizeTransaction(txn.name || txn.description, txn.amount);
+        
+        const transaction = new Transaction({
+          userId,
+          accountId: txn.account_id,
+          transactionId: txn.transaction_id,
+          amount: Math.abs(txn.amount),
+          date: new Date(txn.date),
+          description: txn.name || txn.description || 'Unknown',
+          category,
+          merchant: txn.merchant_name || null,
+          type: txn.amount > 0 ? 'income' : 'expense'
+        });
+        
+        await transaction.save();
+        processedTransactions.push(transaction);
+      } catch (error) {
+        console.error('Error processing transaction:', error);
+      }
+    }
+    
+    return processedTransactions;
+  }
+
+  // Get spending summary
+  static async getSpendingSummary(userId, startDate, endDate) {
+    const matchStage = { userId };
+    
+    if (startDate || endDate) {
+      matchStage.date = {};
+      if (startDate) matchStage.date.$gte = new Date(startDate);
+      if (endDate) matchStage.date.$lte = new Date(endDate);
+    }
+    
+    const summary = await Transaction.aggregate([
+      { $match: matchStage },
+      {
+        $group: {
+          _id: '$type',
+          total: { $sum: '$amount' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    return summary;
+  }
+}
+
+module.exports = TransactionService;

@@ -146,3 +146,75 @@ async function fetchAndStoreTransactions(userId, accessToken) {
 }
 
 module.exports = router;
+const express = require('express');
+const authMiddleware = require('../middleware/auth');
+
+const router = express.Router();
+
+// Create link token (placeholder - requires Plaid credentials)
+router.post('/link/token/create', authMiddleware, async (req, res) => {
+  try {
+    // This would normally create a Plaid link token
+    // For now, return a mock response
+    res.json({
+      link_token: 'mock_link_token_for_development',
+      expiration: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
+    });
+  } catch (error) {
+    console.error('Error creating link token:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Exchange public token for access token
+router.post('/link/token/exchange', authMiddleware, async (req, res) => {
+  try {
+    const { public_token } = req.body;
+    
+    // This would normally exchange the public token with Plaid
+    // For now, return a mock response
+    res.json({
+      access_token: 'mock_access_token',
+      item_id: 'mock_item_id'
+    });
+  } catch (error) {
+    console.error('Error exchanging token:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get accounts
+router.post('/accounts/get', authMiddleware, async (req, res) => {
+  try {
+    // Mock accounts data
+    const accounts = [
+      {
+        account_id: 'mock_account_1',
+        name: 'Checking Account',
+        type: 'depository',
+        subtype: 'checking',
+        balances: {
+          available: 2500.00,
+          current: 2500.00
+        }
+      },
+      {
+        account_id: 'mock_account_2',
+        name: 'Savings Account',
+        type: 'depository',
+        subtype: 'savings',
+        balances: {
+          available: 10000.00,
+          current: 10000.00
+        }
+      }
+    ];
+
+    res.json({ accounts });
+  } catch (error) {
+    console.error('Error getting accounts:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;
