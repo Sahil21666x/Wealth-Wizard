@@ -1,95 +1,95 @@
-"use client"
 
-import { useState } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Search, Building2, Shield, CheckCircle } from "lucide-react"
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Shield, CreditCard, CheckCircle, AlertCircle } from 'lucide-react';
 
-const popularBanks = [
-  { name: "Chase Bank", logo: "🏦", type: "Major Bank" },
-  { name: "Bank of America", logo: "🏛️", type: "Major Bank" },
-  { name: "Wells Fargo", logo: "🏪", type: "Major Bank" },
-  { name: "Citi Bank", logo: "🏢", type: "Major Bank" },
-  { name: "Capital One", logo: "💳", type: "Credit Union" },
-  { name: "Ally Bank", logo: "💰", type: "Online Bank" },
-]
+export default function LinkBankModal({ isOpen, onClose }) {
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
 
-export default function LinkBankModal({ open, onOpenChange }) {
-  const [step, setStep] = useState(1)
-  const [selectedBank, setSelectedBank] = useState(null)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [isConnecting, setIsConnecting] = useState(false)
-
-  const filteredBanks = popularBanks.filter((bank) => bank.name.toLowerCase().includes(searchTerm.toLowerCase()))
-
-  const handleBankSelect = (bank) => {
-    setSelectedBank(bank)
-    setStep(2)
-  }
-
-  const handleConnect = async () => {
-    setIsConnecting(true)
-    // Simulate API connection
+  const handleLinkBank = async () => {
+    setLoading(true);
+    // Simulate API call
     setTimeout(() => {
-      setIsConnecting(false)
-      setStep(3)
-    }, 2000)
-  }
+      setStep(3);
+      setLoading(false);
+    }, 2000);
+  };
 
-  const handleClose = () => {
-    setStep(1)
-    setSelectedBank(null)
-    setSearchTerm("")
-    setIsConnecting(false)
-    onOpenChange(false)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Link Bank Account
-          </DialogTitle>
-          <DialogDescription>
-            {step === 1 && "Select your bank to securely connect your account"}
-            {step === 2 && "Enter your banking credentials to connect"}
-            {step === 3 && "Successfully connected your bank account"}
-          </DialogDescription>
-        </DialogHeader>
-
-        {step === 1 && (
-          <div className="space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search for your bank..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
+                <CreditCard className="w-8 h-8 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Connect Your Bank Account</h3>
+                <p className="text-gray-600">
+                  Securely link your bank account to automatically track transactions and get personalized insights.
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {filteredBanks.map((bank, index) => (
-                <Card
-                  key={index}
-                  className="cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => handleBankSelect(bank)}
-                >
-                  <CardContent className="flex items-center justify-between p-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{bank.logo}</span>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg">
+                <Shield className="w-5 h-5 text-green-600" />
+                <div>
+                  <p className="text-sm font-medium text-green-900">Bank-level Security</p>
+                  <p className="text-xs text-green-700">256-bit encryption and read-only access</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3 p-3 bg-blue-50 rounded-lg">
+                <CheckCircle className="w-5 h-5 text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">Automatic Categorization</p>
+                  <p className="text-xs text-blue-700">AI-powered transaction categorization</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex space-x-3">
+              <Button variant="outline" onClick={onClose} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={() => setStep(2)} className="flex-1">
+                Continue
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto">
+                <Shield className="w-8 h-8 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold">Choose Your Bank</h3>
+                <p className="text-gray-600">
+                  Select your financial institution from our secure list of supported banks.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {['Chase Bank', 'Bank of America', 'Wells Fargo', 'Citibank', 'Capital One'].map((bank) => (
+                <Card key={bank} className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <CreditCard className="w-5 h-5 text-gray-600" />
+                      </div>
                       <div>
-                        <p className="font-medium">{bank.name}</p>
-                        <Badge variant="secondary" className="text-xs">
-                          {bank.type}
-                        </Badge>
+                        <p className="font-medium">{bank}</p>
+                        <p className="text-sm text-gray-500">Supported</p>
                       </div>
                     </div>
                   </CardContent>
@@ -97,69 +97,66 @@ export default function LinkBankModal({ open, onOpenChange }) {
               ))}
             </div>
 
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-              <Shield className="h-4 w-4 text-blue-600" />
-              <span>Your data is encrypted and secure. We use bank-level security.</span>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && selectedBank && (
-          <div className="space-y-4">
-            <Card className="bg-gray-50">
-              <CardContent className="flex items-center gap-3 p-3">
-                <span className="text-2xl">{selectedBank.logo}</span>
-                <div>
-                  <p className="font-medium">{selectedBank.name}</p>
-                  <Badge variant="secondary" className="text-xs">
-                    {selectedBank.type}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor="username">Username</Label>
-                <Input id="username" placeholder="Enter your online banking username" type="text" />
-              </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input id="password" placeholder="Enter your online banking password" type="password" />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-sm text-gray-600 bg-green-50 p-3 rounded-lg">
-              <Shield className="h-4 w-4 text-green-600" />
-              <span>We never store your banking credentials. Connection is read-only.</span>
-            </div>
-
-            <div className="flex gap-2">
+            <div className="flex space-x-3">
               <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
                 Back
               </Button>
-              <Button onClick={handleConnect} disabled={isConnecting} className="flex-1">
-                {isConnecting ? "Connecting..." : "Connect Account"}
+              <Button onClick={handleLinkBank} disabled={loading} className="flex-1">
+                {loading ? 'Connecting...' : 'Link Account'}
               </Button>
             </div>
           </div>
-        )}
+        );
 
-        {step === 3 && (
-          <div className="text-center space-y-4">
-            <div className="flex justify-center">
-              <CheckCircle className="h-16 w-16 text-green-600" />
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle className="w-8 h-8 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-green-900">Account Connected!</h3>
+                <p className="text-gray-600">
+                  Your bank account has been successfully linked. We're now syncing your transaction data.
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="font-semibold text-lg">Account Connected!</h3>
-              <p className="text-gray-600">Your {selectedBank?.name} account has been successfully linked.</p>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">What happens next?</p>
+                  <ul className="text-xs text-blue-700 mt-1 space-y-1">
+                    <li>• Your transactions will be automatically categorized</li>
+                    <li>• AI insights will be generated based on your spending patterns</li>
+                    <li>• You'll receive personalized budgeting recommendations</li>
+                  </ul>
+                </div>
+              </div>
             </div>
-            <Button onClick={handleClose} className="w-full">
-              Done
+
+            <Button onClick={onClose} className="w-full">
+              Continue to Dashboard
             </Button>
           </div>
-        )}
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Link Bank Account</DialogTitle>
+          <DialogDescription>Connect your bank account securely</DialogDescription>
+        </DialogHeader>
+        {renderStep()}
       </DialogContent>
     </Dialog>
-  )
+  );
 }

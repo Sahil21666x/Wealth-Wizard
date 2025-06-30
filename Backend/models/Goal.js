@@ -5,55 +5,69 @@ const goalSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
   title: {
     type: String,
-    required: [true, 'Goal title is required'],
-    maxlength: [100, 'Title cannot exceed 100 characters']
+    required: true,
   },
-  description: {
-    type: String,
-    maxlength: [500, 'Description cannot exceed 500 characters']
-  },
+  description: String,
   targetAmount: {
     type: Number,
-    required: [true, 'Target amount is required'],
-    min: [0, 'Target amount must be positive']
+    required: true,
   },
   currentAmount: {
     type: Number,
     default: 0,
-    min: [0, 'Current amount cannot be negative']
-  },
-  targetDate: {
-    type: Date,
-    required: [true, 'Target date is required']
   },
   category: {
     type: String,
-    enum: ['Emergency', 'Travel', 'Transportation', 'Housing', 'Education', 'Investment', 'Other'],
-    required: true
+    enum: ['emergency', 'vacation', 'home', 'car', 'education', 'retirement', 'other'],
+    required: true,
+  },
+  targetDate: Date,
+  priority: {
+    type: String,
+    enum: ['low', 'medium', 'high'],
+    default: 'medium',
   },
   status: {
     type: String,
-    enum: ['active', 'completed', 'paused'],
-    default: 'active'
+    enum: ['active', 'completed', 'paused', 'cancelled'],
+    default: 'active',
   },
-  monthlyContribution: {
-    type: Number,
-    default: 0
-  }
+  autoContribute: {
+    enabled: { type: Boolean, default: false },
+    amount: Number,
+    frequency: {
+      type: String,
+      enum: ['daily', 'weekly', 'monthly'],
+      default: 'monthly',
+    },
+  },
+  milestones: [{
+    amount: Number,
+    achieved: { type: Boolean, default: false },
+    achievedDate: Date,
+  }],
+  transactions: [{
+    amount: Number,
+    date: { type: Date, default: Date.now },
+    type: {
+      type: String,
+      enum: ['contribution', 'withdrawal'],
+      default: 'contribution',
+    },
+    description: String,
+  }],
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
-// Virtual for progress percentage
-goalSchema.virtual('progress').get(function() {
-  return Math.min((this.currentAmount / this.targetAmount) * 100, 100);
+goalSchema.virtual('progressPercentage').get(function() {
+  return Math.min(Math.round((this.currentAmount / this.targetAmount) * 100), 100);
 });
 
-// Index for efficient queries
 goalSchema.index({ userId: 1, status: 1 });
 
 module.exports = mongoose.model('Goal', goalSchema);

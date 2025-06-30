@@ -5,64 +5,70 @@ const transactionSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
   },
-  plaidTransactionId: {
-    type: String,
-    unique: true,
-    sparse: true
-  },
-  accountId: {
-    type: String,
-    required: true
-  },
+  plaidTransactionId: String,
+  accountId: String,
   amount: {
     type: Number,
-    required: true
-  },
-  date: {
-    type: Date,
-    required: true
+    required: true,
   },
   description: {
     type: String,
-    required: true
+    required: true,
   },
-  category: {
-    primary: {
-      type: String,
-      required: true
-    },
-    detailed: {
-      type: String,
-      required: true
-    }
-  },
-  merchant: {
-    type: String,
-    default: null
+  date: {
+    type: Date,
+    required: true,
   },
   type: {
     type: String,
     enum: ['income', 'expense'],
-    required: true
+    required: true,
   },
-  isAnomalous: {
+  category: {
+    primary: {
+      type: String,
+      required: true,
+    },
+    detailed: String,
+    icon: String,
+  },
+  merchant: {
+    name: String,
+    logo: String,
+  },
+  location: {
+    address: String,
+    city: String,
+    region: String,
+    postalCode: String,
+    country: String,
+    lat: Number,
+    lon: Number,
+  },
+  paymentMeta: {
+    paymentMethod: String,
+    paymentProcessor: String,
+    ppd_id: String,
+    reason: String,
+    reference_number: String,
+  },
+  pending: {
     type: Boolean,
-    default: false
+    default: false,
   },
-  confidence: {
-    type: Number,
-    default: 1.0,
-    min: 0,
-    max: 1
-  }
+  isRecurring: {
+    type: Boolean,
+    default: false,
+  },
+  tags: [String],
+  notes: String,
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
-// Index for efficient queries
 transactionSchema.index({ userId: 1, date: -1 });
-transactionSchema.index({ userId: 1, category: 1 });
+transactionSchema.index({ userId: 1, 'category.primary': 1 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);

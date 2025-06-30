@@ -1,127 +1,75 @@
+import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-// Get auth token from localStorage
-const getAuthToken = () => {
-  return localStorage.getItem('token')
-}
+export const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 10000,
+});
 
-// Make authenticated API requests
-const apiRequest = async (endpoint, options = {}) => {
-  const token = getAuthToken()
-  
-  const config = {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-    ...options,
+// Request interceptor
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
+);
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
-  
-  if (response.status === 401) {
-    // Token expired, redirect to login
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    window.location.reload()
-    return
+// Response interceptor
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
   }
+);
 
-  const data = await response.json()
-  
-  if (!response.ok) {
-    throw new Error(data.message || 'API request failed')
-  }
-  
-  return data
-}
-
-// Auth API calls
+// Auth API functions
 export const authAPI = {
-  login: (credentials) => 
-    fetch(`${API_BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials),
-    }),
-  
-  register: (userData) =>
-    fetch(`${API_BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData),
-    }),
-    
-  getMe: () => apiRequest('/auth/me'),
-  
-  updateProfile: (profileData) =>
-    apiRequest('/auth/profile', {
-      method: 'PUT',
-      body: JSON.stringify(profileData),
-    }),
-}
+  login: (credentials) => api.post('/auth/login', credentials),
+  register: (userData) => api.post('/auth/register', userData),
+  getProfile: () => api.get('/auth/me'),
+  updateProfile: (data) => api.put('/auth/profile', data),
+};
 
-// Transactions API calls
+// Transactions API functions
 export const transactionsAPI = {
-  getAll: () => apiRequest('/transactions'),
-  
-  create: (transactionData) =>
-    apiRequest('/transactions', {
-      method: 'POST',
-      body: JSON.stringify(transactionData),
-    }),
-    
-  update: (id, transactionData) =>
-    apiRequest(`/transactions/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(transactionData),
-    }),
-    
-  delete: (id) =>
-    apiRequest(`/transactions/${id}`, {
-      method: 'DELETE',
-    }),
-}
+  getAll: (params) => api.get('/transactions', { params }),
+  create: (data) => api.post('/transactions', data),
+  update: (id, data) => api.put(`/transactions/${id}`, data),
+  delete: (id) => api.delete(`/transactions/${id}`),
+  getCategories: () => api.get('/transactions/categories'),
+};
 
-// Goals API calls
+// Goals API functions
 export const goalsAPI = {
-  getAll: () => apiRequest('/goals'),
-  
-  create: (goalData) =>
-    apiRequest('/goals', {
-      method: 'POST',
-      body: JSON.stringify(goalData),
-    }),
-    
-  update: (id, goalData) =>
-    apiRequest(`/goals/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(goalData),
-    }),
-    
-  delete: (id) =>
-    apiRequest(`/goals/${id}`, {
-      method: 'DELETE',
-    }),
-}
+  getAll: () => api.get('/goals'),
+  create: (data) => api.post('/goals', data),
+  update: (id, data) => api.put(`/goals/${id}`, data),
+  delete: (id) => api.delete(`/goals/${id}`),
+  contribute: (id, amount) => api.post(`/goals/${id}/contribute`, { amount }),
+};
 
-// Insights API calls
+// Insights API functions
 export const insightsAPI = {
-  getSpendingAnalysis: () => apiRequest('/insights/spending-analysis'),
-  getBudgetRecommendations: () => apiRequest('/insights/budget-recommendations'),
-  getPredictions: () => apiRequest('/insights/predictions'),
-}
+  getInsights: (period) => api.get('/insights', { params: { period } }),
+  getPredictions: () => api.get('/insights/predictions'),
+  getTips: () => api.get('/insights/tips'),
+};
 
-// Plaid API calls
+// Plaid API functions
 export const plaidAPI = {
-  createLinkToken: () => apiRequest('/plaid/create-link-token', { method: 'POST' }),
-  exchangeToken: (publicToken) =>
-    apiRequest('/plaid/exchange-public-token', {
-      method: 'POST',
-      body: JSON.stringify({ public_token: publicToken }),
-    }),
-}
-
-export default apiRequest
+  createLinkToken: () => api.post('/plaid/create-link-token'),
+  exchangePublicToken: (publicToken) => api.post('/plaid/exchange-public-token', { publicToken }),
+  getAccounts: () => api.get('/plaid/accounts'),
+  syncTransactions: () => api.post('/plaid/sync-transactions'),
+};

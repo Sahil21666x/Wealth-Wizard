@@ -1,65 +1,96 @@
 
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const validator = require('validator');
 
 const userSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-    maxlength: [50, 'Name cannot exceed 50 characters']
-  },
   email: {
     type: String,
-    required: [true, 'Email is required'],
+    required: true,
     unique: true,
     lowercase: true,
-    validate: [validator.isEmail, 'Please provide a valid email']
   },
   password: {
     type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters']
+    required: true,
+    minlength: 6,
   },
-  plaidAccessToken: {
+  firstName: {
     type: String,
-    default: null
+    required: true,
   },
-  plaidItemId: {
+  lastName: {
     type: String,
-    default: null
+    required: true,
   },
-  monthlyIncome: {
-    type: Number,
-    default: 0
+  profile: {
+    avatar: String,
+    phone: String,
+    dateOfBirth: Date,
+    occupation: String,
   },
   preferences: {
     currency: {
       type: String,
-      default: 'USD'
+      default: 'USD',
     },
     notifications: {
-      type: Boolean,
-      default: true
-    }
-  }
+      email: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
+      sms: { type: Boolean, default: false },
+    },
+    privacy: {
+      dataSharing: { type: Boolean, default: false },
+      analyticsTracking: { type: Boolean, default: true },
+      marketingEmails: { type: Boolean, default: false },
+    },
+  },
+  plaidItems: [{
+    accessToken: String,
+    itemId: String,
+    institutionId: String,
+    institutionName: String,
+    accounts: [{
+      accountId: String,
+      name: String,
+      type: String,
+      subtype: String,
+      mask: String,
+    }],
+  }],
+  gamification: {
+    totalPoints: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    badges: [String],
+    streaks: {
+      currentSavingStreak: { type: Number, default: 0 },
+      longestSavingStreak: { type: Number, default: 0 },
+      budgetAdherenceStreak: { type: Number, default: 0 },
+    },
+    challenges: [{
+      id: String,
+      title: String,
+      description: String,
+      type: String,
+      target: Number,
+      progress: { type: Number, default: 0 },
+      completed: { type: Boolean, default: false },
+      startDate: Date,
+      endDate: Date,
+      reward: Number,
+    }],
+  },
 }, {
-  timestamps: true
+  timestamps: true,
 });
 
-// Hash password before saving
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
-  
-  const salt = await bcrypt.genSalt(12);
-  this.password = await bcrypt.hash(this.password, salt);
+  this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-// Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
 module.exports = mongoose.model('User', userSchema);
