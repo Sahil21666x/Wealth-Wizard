@@ -169,3 +169,135 @@ router.post('/detect-anomalies', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+const express = require('express');
+const Transaction = require('../models/Transaction');
+const authMiddleware = require('../middleware/auth');
+
+const router = express.Router();
+
+// Get all transactions for user
+router.get('/', authMiddleware, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, category, startDate, endDate } = req.query;
+    
+    const query = { userId: req.user._id };
+    
+    if (category) query.category = category;
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    const transactions = await Transaction.find(query)
+      .sort({ date: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .exec();
+
+    const total = await Transaction.countDocuments(query);
+
+    res.json({
+      transactions,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (error) {
+    console.error('Error fetching transactions:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create new transaction
+router.post('/', authMiddleware, async (req, res) => {
+  try {
+    const transactionData = {
+      ...req.body,
+      userId: req.user._id
+    };
+
+    const transaction = new Transaction(transactionData);
+    await transaction.save();
+
+    res.status(201).json({ message: 'Transaction created successfully', transaction });
+  } catch (error) {
+    console.error('Error creating transaction:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update transaction
+router.put('/:id', authMiddleware, async (req, res) => {
+  try {
+    const transaction = await Transaction.findOneAndUpdate(
+      { _id: req.params.id, userId: req.user._id },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    res.json({ message: 'Transaction updated successfully', transaction });
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete transaction
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const transaction = await Transaction.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user._id
+    });
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Transaction not found' });
+    }
+
+    res.json({ message: 'Transaction deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get transaction statistics
+router.get('/stats', authMiddleware, async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const query = { userId: req.user._id };
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    const transactions = await Transaction.find(query);
+    
+    const totalIncome = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const totalExpenses = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    res.json({
+      totalIncome,
+      totalExpenses,
+      netIncome: totalIncome - totalExpenses,
+      transactionCount: transactions.length
+    });
+  } catch (error) {
+    console.error('Error getting transaction stats:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+module.exports = router;
