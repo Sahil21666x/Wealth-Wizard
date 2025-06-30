@@ -1,0 +1,80 @@
+1. Project Overview
+A smart personal finance web application that allows users to track income, spending, and savings in real time. By connecting with banking APIs, the app fetches transaction data and uses AI to analyze financial behavior, predict future spending, and offer personalized budgeting tips. It also includes gamified elements to make saving money more engaging.
+
+2. Goals and Objectives
+🎯 Primary Goals:
+Provide real-time financial tracking using bank integration.
+
+Use AI to analyze spending patterns and predict future expenses.
+
+Deliver personalized financial advice and savings plans.
+
+Encourage user engagement through gamification features.
+
+3. Target Audience
+Young professionals
+
+Students
+
+Budget-conscious individuals
+
+Small business owners
+
+4. Key Features and Requirements
+✅ User Features
+Feature	Description
+User Authentication	Sign up, login, password reset (JWT-based).
+Bank Integration	Connect to user’s bank via Plaid API to fetch transactions.
+Dashboard	Summary of total balance, spending categories, goals progress.
+AI Insights	Analyze transaction data to: <ul><li>Predict future spending</li><li>Detect anomalies</li><li>Suggest budget adjustments</li></ul>
+Expense Categorization	Automatically tag and group expenses (e.g., Food, Travel).
+Savings Goals	Users can set goals (e.g., save ₹5000 for travel) and get tips to achieve them.
+Gamification	Weekly/monthly challenges (e.g., no eating out for a week), badges and streaks.
+Reports & Charts	Visual representation of income vs. expenses using charts.
+
+5. Technical Requirements
+🧱 Tech Stack
+Layer	Technology
+Frontend	React.js, Tailwind CSS or Material UI
+Backend	Node.js, Express.js
+Database	MongoDB
+AI/ML	TensorFlow.js (client-side ML) or Python microservice with TensorFlow/Keras
+Bank Integration	Plaid API (sandbox for testing)
+Authentication	JWT, bcrypt, cookie-based sessions
+
+6. Non-Functional Requirements
+Responsiveness: Fully responsive across devices.
+
+Security: Secure API access, encrypted tokens, and user data protection.
+
+Performance: Load dashboard within 2 seconds.
+
+Scalability: Modular backend for microservice-based upgrades.
+
+Reliability: Daily backups, failover support.
+
+7. User Roles
+Role	Permissions
+Regular User	Access personal dashboard, insights, and reports.
+Admin (Optional)	View user statistics, monitor API usage, troubleshoot issues.
+
+8. Milestones / Timeline (4 Months)
+Month	Milestone
+Week 1-2	UI/UX design and setup
+Week 3-5	User auth & dashboard base
+Week 6-7	Bank integration via Plaid API
+Week 8-9	Expense categorization and goal setting
+Week 10-11	AI insights module
+Week 12-13	Gamification features
+Week 14-15	Charts and reports
+Week 16	Final testing, bug fixing, deployment
+
+9. APIs & Integrations
+Plaid API: For bank account linking and transactions.
+
+OpenAI / TensorFlow.js: For financial pattern analysis.
+
+Chart.js / Recharts: For visualization.
+
+Node Cron: For scheduled insights/report generation.
+
