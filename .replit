@@ -4,12 +4,25 @@ modules = ["nodejs-20", "web"]
 channel = "stable-24_05"
 
 [workflows]
-runButton = "Start Frontend"
+runButton = "Start Full Stack"
 
 [[workflows.workflow]]
 name = "Start Frontend"
 author = 44430879
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Frontend && npm run dev"
+
+[[workflows.workflow]]
+name = "Start Full Stack"
+author = 44430879
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Backend && npm start"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
