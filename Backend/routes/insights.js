@@ -1,12 +1,12 @@
-
 const express = require('express');
+const router = express.Router();
 const Transaction = require('../models/Transaction');
 const Goal = require('../models/Goal');
 const authMiddleware = require('../middleware/auth');
 const aiService = require('../services/aiService');
 const moment = require('moment');
 
-const router = express.Router();
+
 
 // Get financial insights
 router.get('/', authMiddleware, async (req, res) => {
@@ -214,13 +214,6 @@ async function getSpendingTrends(userId, period, category) {
   return trends;
 }
 
-module.exports = router;
-const express = require('express');
-const authMiddleware = require('../middleware/auth');
-const Transaction = require('../models/Transaction');
-const aiService = require('../services/aiService');
-
-const router = express.Router();
 
 // Get spending insights
 router.get('/spending', authMiddleware, async (req, res) => {

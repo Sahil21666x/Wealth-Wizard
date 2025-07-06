@@ -1,12 +1,10 @@
 
-const express = require('express');
 const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const authMiddleware = require('../middleware/auth');
 const transactionService = require('../services/transactionService');
 
-const router = express.Router();
 
 // Initialize Plaid client
 const configuration = new Configuration({
