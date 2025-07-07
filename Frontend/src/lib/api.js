@@ -35,41 +35,41 @@ api.interceptors.response.use(
 
 // Auth API functions
 export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
-  register: (userData) => api.post('/auth/register', userData),
-  getProfile: () => api.get('/auth/me'),
-  updateProfile: (data) => api.put('/auth/profile', data),
+  login: (credentials) => api.post('/api/auth/login', credentials),
+  register: (userData) => api.post('/api/auth/register', userData),
+  getProfile: () => api.get('/api/auth/me'),
+  updateProfile: (data) => api.put('/api/auth/profile', data),
 };
 
 // Transactions API functions
 export const transactionsAPI = {
-  getAll: (params) => api.get('/transactions', { params }),
-  create: (data) => api.post('/transactions', data),
-  update: (id, data) => api.put(`/transactions/${id}`, data),
-  delete: (id) => api.delete(`/transactions/${id}`),
-  getCategories: () => api.get('/transactions/categories'),
+  getAll: (params) => api.get('/api/transactions', { params }),
+  create: (data) => api.post('/api/transactions', data),
+  update: (id, data) => api.put(`/api/transactions/${id}`, data),
+  delete: (id) => api.delete(`/api/transactions/${id}`),
+  getCategories: () => api.get('/api/transactions/categories'),
 };
 
 // Goals API functions
 export const goalsAPI = {
-  getAll: () => api.get('/goals'),
-  create: (data) => api.post('/goals', data),
-  update: (id, data) => api.put(`/goals/${id}`, data),
-  delete: (id) => api.delete(`/goals/${id}`),
-  contribute: (id, amount) => api.post(`/goals/${id}/contribute`, { amount }),
+  getAll: () => api.get('/api/goals'),
+  create: (data) => api.post('/api/goals', data),
+  update: (id, data) => api.put(`/api/goals/${id}`, data),
+  delete: (id) => api.delete(`/api/goals/${id}`),
+  contribute: (id, amount) => api.post(`/api/goals/${id}/contribute`, { amount }),
 };
 
 // Insights API functions
 export const insightsAPI = {
-  getInsights: (period) => api.get('/insights', { params: { period } }),
-  getPredictions: () => api.get('/insights/predictions'),
-  getTips: () => api.get('/insights/tips'),
+  getInsights: (period) => api.get('/api/insights', { params: { period } }),
+  getPredictions: () => api.get('/api/insights/predictions'),
+  getTips: () => api.get('/api/insights/tips'),
 };
 
 // Plaid API functions
 export const plaidAPI = {
-  createLinkToken: () => api.post('/plaid/create-link-token'),
-  exchangePublicToken: (publicToken) => api.post('/plaid/exchange-public-token', { publicToken }),
-  getAccounts: () => api.get('/plaid/accounts'),
-  syncTransactions: () => api.post('/plaid/sync-transactions'),
+  createLinkToken: () => api.post('/api/plaid/create-link-token'),
+  exchangePublicToken: (publicToken) => api.post('/api/plaid/exchange-public-token', { publicToken }),
+  getAccounts: () => api.get('/api/plaid/accounts'),
+  syncTransactions: () => api.post('/api/plaid/sync-transactions'),
 };
