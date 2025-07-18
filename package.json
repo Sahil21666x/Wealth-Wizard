@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "axios": "^1.10.0",
+    "express-rate-limit": "^7.5.1",
+    "helmet": "^8.1.0",
+    "mongoose": "^8.16.1",
+    "node-cron": "^4.2.1",
+    "react-router-dom": "^7.6.3"
+  }
+}
