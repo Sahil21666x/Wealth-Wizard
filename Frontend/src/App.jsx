@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Dashboard from './components/Dashboard';
 import LoginPage from './components/LoginPage';
 import { api } from './lib/api';
+import { ToastProvider } from './components/ui/Toast';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -86,6 +87,7 @@ function App() {
   }
 
   return (
+    <ToastProvider>
     <Router>
       <div className="App">
         <Routes>
@@ -114,6 +116,7 @@ function App() {
         </Routes>
       </div>
     </Router>
+    </ToastProvider>
   );
 }
 

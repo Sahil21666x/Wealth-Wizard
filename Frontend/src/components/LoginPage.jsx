@@ -5,7 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { DollarSign, TrendingUp, Shield, Brain, Gamepad2, Target } from 'lucide-react';
+import { DollarSign, TrendingUp, Shield, Brain, Gamepad2, Target, PieChart } from 'lucide-react';
 import { authAPI } from '../lib/api';
 
 export default function LoginPage({ onLogin }) {
@@ -14,6 +14,7 @@ export default function LoginPage({ onLogin }) {
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: ''
   });
@@ -68,7 +69,7 @@ export default function LoginPage({ onLogin }) {
                 <DollarSign className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                FinanceAI
+                WealthWizard
               </h1>
             </div>
             <p className="text-xl text-gray-600">Your AI-powered personal finance companion</p>
@@ -96,14 +97,15 @@ export default function LoginPage({ onLogin }) {
             </div>
 
             <div className="flex items-start space-x-4">
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Gamepad2 className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <PieChart className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Gamification</h3>
-                <p className="text-gray-600">Make saving fun with challenges, badges, and rewards</p>
+                <h3 className="font-semibold text-gray-900">Smart Budgeting</h3>
+                <p className="text-gray-600">AI-assisted budgeting to help you plan, control, and optimize your spending.</p>
               </div>
             </div>
+
 
             <div className="flex items-start space-x-4">
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -126,7 +128,7 @@ export default function LoginPage({ onLogin }) {
                   <DollarSign className="w-5 h-5 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  FinanceAI
+                  WealthWizard
                 </h1>
               </div>
               <CardTitle className="text-2xl">Welcome</CardTitle>
@@ -206,6 +208,17 @@ export default function LoginPage({ onLogin }) {
                         placeholder="Enter your email"
                         value={registerData.email}
                         onChange={(e) => setRegisterData({ ...registerData, email: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="registerPhone">Mobile No.</Label>
+                      <Input
+                        id="registerPhone"
+                        type="number"
+                        placeholder="Enter your mobile number"
+                        value={registerData.phone}
+                        onChange={(e) => setRegisterData({ ...registerData, phone: e.target.value })}
                         required
                       />
                     </div>

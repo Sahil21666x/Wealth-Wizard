@@ -1,17 +1,25 @@
 
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-
-const data = [
-  { month: 'Jan', income: 4800, expenses: 3200 },
-  { month: 'Feb', income: 5100, expenses: 3400 },
-  { month: 'Mar', income: 4900, expenses: 3600 },
-  { month: 'Apr', income: 5200, expenses: 3800 },
-  { month: 'May', income: 5400, expenses: 3900 },
-  { month: 'Jun', income: 5200, expenses: 3850 },
-];
+import { insightsAPI } from '../lib/api';
+import { useState } from 'react';
+import { useEffect } from 'react';
 
 export default function IncomeExpenseChart() {
+const [data, setData] = useState([])
+ 
+ useEffect(()=>{
+
+     async function fetchData()  {
+     const response = await insightsAPI.getIcomeExpenseTrends()
+     console.log(response.data,"insData");
+     setData(response.data)
+    }
+
+    fetchData()
+    
+ },[])
+
   return (
     <div className="h-[300px]">
       <ResponsiveContainer width="100%" height="100%">
@@ -36,11 +44,11 @@ export default function IncomeExpenseChart() {
             axisLine={false}
             tickLine={false}
             className="text-xs"
-            tickFormatter={(value) => `$${value}`}
+            tickFormatter={(value) => `₹${value}`}
           />
           <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
           <Tooltip 
-            formatter={(value, name) => [`$${value}`, name === 'income' ? 'Income' : 'Expenses']}
+            formatter={(value, name) => [`₹${value}`, name === 'income' ? 'Income' : 'Expenses']}
             labelFormatter={(label) => `Month: ${label}`}
             contentStyle={{
               backgroundColor: 'white',

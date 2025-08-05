@@ -3,13 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
-import { 
-  CreditCard, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Eye, 
-  EyeOff, 
+import {
+  CreditCard,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Eye,
+  EyeOff,
   Trophy,
   Target,
   Plus,
@@ -25,6 +25,8 @@ import {
 import IncomeExpenseChart from './IncomeExpenseChart';
 import LinkBankModal from './LinkBankModal';
 import { transactionsAPI, goalsAPI, insightsAPI, plaidAPI, indianBanksAPI } from '../lib/api';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 export default function DashboardHome({ user }) {
   const [showBalance, setShowBalance] = useState(true);
@@ -35,6 +37,10 @@ export default function DashboardHome({ user }) {
   const [connectedAccounts, setConnectedAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalStep, setModalStep] = useState(1);
+  const [primaryAc, setPrimaryAc] = useState()
+  const [deleting, setDeleting] = useState(false);
+
+  const navigate = useNavigate()
 
 
   const [aiInsights, setAiInsights] = useState([]);
@@ -50,61 +56,51 @@ export default function DashboardHome({ user }) {
     fetchDashboardData();
   }, []);
 
+
+
   const fetchConnectedAccounts = async () => {
     try {
       const response = await indianBanksAPI.getAccounts();
-      console.log("connected ac :", response.data.accounts);
-      
+
+      // console.log("connected ac :", response.data.accounts);
+
       setConnectedAccounts(response.data.accounts || []);
+
+      // const primary = response.data.accounts.find({isPrimary:true})
+      // console.log(primary,"primary");
+
     } catch (error) {
       console.error('Error fetching connected accounts:', error);
       setConnectedAccounts([]);
     }
   };
 
-  const handleAccountLinked = (accountInfo) => {
-    // Add the newly linked account to the connected accounts list
-    console.log("Linked account received in parent:", accountInfo);
-    const newAccount = {
-      account_id: `new_${Date.now()}`,
-      name: `${accountInfo.bankName} - ****${accountInfo.accountNumber}`,
-      type: 'depository',
-      subtype: 'checking',
-      balances: {
-        available: 0,
-        current: 0
-      },
-      bank_name: accountInfo.bankName,
-      branch_name: accountInfo.branchName,
-      ifsc: accountInfo.ifsc,
-      status: 'connected',
-      last_sync: new Date().toLocaleDateString()
-    };
+  // console.log(connectedAccounts,"connected accounts");
 
-    setConnectedAccounts(prev => [...prev, newAccount]);
-
-    // Refresh data after linking account
-    fetchDashboardData();
-  };
-  console.log(connectedAccounts,"connected accounts");
-  
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+
+      //fetching Primary Account
+      const primaryAc = await indianBanksAPI.getPrimary()
+
+      setPrimaryAc(primaryAc.data[0])
+
       // Fetch all dashboard data
       const [goalsResponse, transactionsResponse, insightsResponse, tipsResponse] = await Promise.allSettled([
         goalsAPI.getAll(),
         transactionsAPI.getAll({ limit: 5 }),
         insightsAPI.getInsights('monthly'),
-        insightsAPI.getPersonalizedTips()
+        insightsAPI.getPersonalizedTips(),
       ]);
+
 
       setDashboardData(prev => ({
         ...prev,
         goals: goalsResponse.status === 'fulfilled' ? goalsResponse.value.data : [],
         recentTransactions: transactionsResponse.status === 'fulfilled' ? (transactionsResponse.value.data.transactions || []) : [],
-        insights: insightsResponse.status === 'fulfilled' ? insightsResponse.value.data : {}
+        insights: insightsResponse.status === 'fulfilled' ? insightsResponse.value.data : {},
       }));
 
       // Transform tips into AI insights format
@@ -121,20 +117,21 @@ export default function DashboardHome({ user }) {
         setAiInsights([
           {
             type: "info",
-            title: "Welcome to FinanceAI",
+            title: "Welcome to WealthWizard",
             description: "Start by adding some transactions to get personalized insights.",
             suggestion: "Connect your bank account or add manual transactions.",
           }
         ]);
       }
-       await fetchConnectedAccounts();
+      await fetchConnectedAccounts();
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       // Fallback to sample insights if API fails
       setAiInsights([
         {
           type: "info",
-          title: "Welcome to FinanceAI",
+          title: "Welcome to WealthWizard",
           description: "Start by adding some transactions to get personalized insights.",
           suggestion: "Connect your bank account or add manual transactions.",
         }
@@ -166,6 +163,48 @@ export default function DashboardHome({ user }) {
     }
   };
 
+  const handleSetPrimary = async (accountId) => {
+    try {
+      console.log("acccountId setp", accountId);
+
+      // Optimistically update UI
+      const updatedAccounts = connectedAccounts.map(account => ({
+        ...account,
+        isPrimary: account.accountId === accountId,
+      }));
+      setConnectedAccounts(updatedAccounts);
+
+      // Make backend API call
+      const primaryRes = await indianBanksAPI.setPrimary({ accountId });
+      console.log(primaryRes, "primaryRes :");
+
+
+      // Optional: re-fetch for sync
+      fetchDashboardData();
+    } catch (err) {
+      console.error("Error setting primary account:", err);
+      // Optionally show error toast or revert state
+    }
+  };
+
+  const handleDeleteAccount = async (accountId) => {
+    const confirmDelete = window.confirm('Are you sure you want to delete this account?');
+    if (!confirmDelete) return;
+
+    setDeleting(true);
+    try {
+      await indianBanksAPI.removeBank(accountId);
+      fetchConnectedAccounts(); // refresh list after deletion
+    } catch (error) {
+      console.error('Failed to delete account:', error);
+      alert('Error deleting account');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -186,7 +225,7 @@ export default function DashboardHome({ user }) {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between my-5">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">
             Welcome back, {user?.firstName}!
@@ -194,11 +233,9 @@ export default function DashboardHome({ user }) {
           <p className="text-gray-600">Here's your financial overview</p>
         </div>
         <div className="flex items-center space-x-2">
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <Trophy className="w-3 h-3 mr-1" />
-            Level {user?.gamification?.level || 1}
-          </Badge>
-          <Button onClick={() => setShowLinkBank(true)}>
+          <Button onClick={() => setShowLinkBank(true)}
+            disabled = {connectedAccounts.length>=3}
+            >
             <CreditCard className="w-4 h-4 mr-2" />
             Link Bank Account
           </Button>
@@ -214,12 +251,12 @@ export default function DashboardHome({ user }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ₹{connectedAccounts[0].balances.available.toLocaleString()}
+              ₹{primaryAc?.balances?.current.toLocaleString() || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               <span className="text-green-600 flex items-center">
                 <TrendingUp className="w-3 h-3 mr-1" />
-                +12.5% from last month
+                {dashboardData.insights.balanceChange > 0 ? '+' : ''}{dashboardData.insights.balanceChange?.toFixed(1) || 0}% from last month
               </span>
             </p>
           </CardContent>
@@ -232,12 +269,13 @@ export default function DashboardHome({ user }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              ₹{dashboardData.monthlyIncome.toLocaleString()}
+              ₹{dashboardData?.insights?.totalIncome?.toLocaleString() || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               <span className="text-green-600 flex items-center">
                 <ArrowUpRight className="w-3 h-3 mr-1" />
-                +8.2% from last month
+                {dashboardData.insights.incomeChange > 0 ? '+' : ''}
+                {dashboardData.insights.incomeChange?.toFixed(1) || 0}% from last month
               </span>
             </p>
           </CardContent>
@@ -250,12 +288,12 @@ export default function DashboardHome({ user }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              ₹{dashboardData.monthlyExpenses.toLocaleString()}
+              ₹ {dashboardData?.insights?.totalExpenses?.toLocaleString() || 0}
             </div>
             <p className="text-xs text-muted-foreground">
               <span className="text-red-600 flex items-center">
                 <ArrowUpRight className="w-3 h-3 mr-1" />
-                +3.1% from last month
+                {dashboardData.insights.spendingChange > 0 ? '+' : ''}{dashboardData.insights.spendingChange?.toFixed(1) || 0}% from last month
               </span>
             </p>
           </CardContent>
@@ -268,9 +306,11 @@ export default function DashboardHome({ user }) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              ₹{(dashboardData.monthlyIncome - dashboardData.monthlyExpenses).toLocaleString()}
+              ₹{(dashboardData?.insights?.netIncome)?.toLocaleString() || 0}
             </div>
-            <p className="text-xs text-muted-foreground">26% of income</p>
+            <p className="text-xs text-muted-foreground">
+              {dashboardData.insights.savingsChange > 0 ? '+' : ''}{dashboardData.insights.savingsChange?.toFixed(1) || 0}% from last month
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -294,7 +334,7 @@ export default function DashboardHome({ user }) {
               <CardTitle>Recent Transactions</CardTitle>
               <CardDescription>Your latest financial activity</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/transactions')}>
               View All
             </Button>
           </CardHeader>
@@ -303,11 +343,10 @@ export default function DashboardHome({ user }) {
               {dashboardData.recentTransactions.length > 0 ? (
                 dashboardData.recentTransactions.map((transaction, index) => (
                   <div key={index} className="flex items-center space-x-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      transaction.type === 'income' 
-                        ? 'bg-green-100 text-green-600' 
-                        : 'bg-red-100 text-red-600'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${transaction.type === 'income'
+                      ? 'bg-green-100 text-green-600'
+                      : 'bg-red-100 text-red-600'
+                      }`}>
                       {transaction.type === 'income' ? (
                         <TrendingUp className="w-4 h-4" />
                       ) : (
@@ -318,10 +357,9 @@ export default function DashboardHome({ user }) {
                       <p className="text-sm font-medium">{transaction.description}</p>
                       <p className="text-xs text-gray-500">{transaction.category?.primary}</p>
                     </div>
-                    <div className={`text-sm font-medium ${
-                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'income' ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
+                    <div className={`text-sm font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                      {transaction.type === 'income' ? '+' : '-'}₹{Math.abs(transaction.amount).toFixed(2)}
                     </div>
                   </div>
                 ))
@@ -345,7 +383,7 @@ export default function DashboardHome({ user }) {
               <CardTitle>Savings Goals</CardTitle>
               <CardDescription>Track your financial objectives</CardDescription>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/goals')}>
               Manage Goals
             </Button>
           </CardHeader>
@@ -358,15 +396,15 @@ export default function DashboardHome({ user }) {
                       <div>
                         <p className="text-sm font-medium">{goal.title}</p>
                         <p className="text-xs text-gray-500">
-                          ${goal.currentAmount} of ${goal.targetAmount}
+                          ₹{goal.currentAmount} of ₹{goal.targetAmount}
                         </p>
                       </div>
                       <Badge variant="outline">
                         {Math.round((goal.currentAmount / goal.targetAmount) * 100)}%
                       </Badge>
                     </div>
-                    <Progress 
-                      value={(goal.currentAmount / goal.targetAmount) * 100} 
+                    <Progress
+                      value={(goal.currentAmount / goal.targetAmount) * 100}
                       className="h-2"
                     />
                   </div>
@@ -418,82 +456,120 @@ export default function DashboardHome({ user }) {
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-1">
-        {/* Connected Accounts */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-blue-600" />
-                Connected Accounts
-              </CardTitle>
-              <CardDescription>Your linked bank accounts</CardDescription>
-            </div>
-            <Button size="sm" onClick={() => setShowLinkBank(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Link Account
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {connectedAccounts.length > 0 ? (
-              <div className="space-y-3">
-                {connectedAccounts.map((account, index) => (
-                  <div key={account.account_id || index} className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                        <CreditCard className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{account.name}</p>
-                        <p className="text-sm text-gray-600 capitalize">{account.subtype} Account</p>
-                        {account.bank_name && (
-                          <p className="text-xs text-gray-500">{account.bank_name}</p>
-                        )}
-                        {account.last_sync && (
-                          <p className="text-xs text-gray-500">Last sync: {account.last_sync}</p>
-                        )}
-                      </div>
+       <div className="grid gap-6 lg:grid-cols-1">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-blue-600" />
+              <span className="text-base sm:text-lg">Connected Accounts</span>
+            </CardTitle>
+            <CardDescription>Your linked bank accounts</CardDescription>
+          </div>
+          <Button
+           size="sm" 
+           onClick={() => setShowLinkBank(true)}
+           disabled = {connectedAccounts.length>=3}
+            // className={`${someCondition ? 'opacity-50 cursor-not-allowed' : ''}`}
+           >
+            <Plus className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Link Account</span>
+            <span className="sm:hidden">Link</span>
+          </Button>
+        </CardHeader>
+
+        <CardContent>
+          {connectedAccounts.length > 0 ? (
+            <div className="space-y-3">
+              {connectedAccounts.map((account, index) => (
+                <div
+                  key={account.accountId || index}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-gray-50 gap-4"
+                >
+                  {/* Left: Bank Info */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
                     </div>
-                    <div className="text-right">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <Badge variant="default" className="bg-green-100 text-green-800">Connected</Badge>
-                      </div>
-                      {account.balances && (
-                        <p className="text-sm font-medium mt-1">
-                          ${account.balances.current?.toLocaleString() || '0.00'}
-                        </p>
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{account.bankName}</p>
+                      <p className="text-sm text-gray-600 capitalize">{account.type} Account</p>
+                      {account.bankName && (
+                        <p className="text-xs text-gray-500 truncate">{account.bankName}</p>
+                      )}
+                      {account.last_sync && (
+                        <p className="text-xs text-gray-500">Last sync: {account.last_sync}</p>
                       )}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Connected Accounts</h3>
-                <p className="text-gray-600 mb-4">Link your bank accounts to get started with automatic transaction tracking</p>
-                <Button onClick={() => setShowLinkBank(true)}>
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Link Your First Account
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+
+                  {/* Right: Actions and Balance */}
+                  <div className="flex flex-col sm:items-end gap-2">
+                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleSetPrimary(account.accountId)}
+                        disabled={account.isPrimary}
+                      >
+                        {account.isPrimary ? 'Primary' : 'Set Primary'}
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteAccount(account.accountId)}
+                        disabled={deleting}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                      <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        Connected
+                      </Badge>
+                    </div>
+
+                    {account.balances && (
+                      <p className="text-sm font-medium">
+                        ₹{account.balances.current?.toLocaleString() || '0.00'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Connected Accounts</h3>
+              <p className="text-gray-600 mb-4">
+                Link your bank accounts to get started with automatic transaction tracking
+              </p>
+              <Button onClick={() => setShowLinkBank(true)}>
+                <CreditCard className="w-4 h-4 mr-2" />
+                Link Your First Account
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
 
       {/* Link Bank Modal */}
-      <LinkBankModal 
-  isOpen={showLinkBank}
-  onClose={() => {
-    setModalStep(1);          // Reset step when closed
-    setShowLinkBank(false);   // Hide modal
-  }}
-  step={modalStep}
-  setStep={setModalStep}
-  onAccountLinked={handleAccountLinked}
-/>
+      <LinkBankModal
+        isOpen={showLinkBank}
+        onClose={() => {
+          setModalStep(1);          // Reset step when closed
+          setShowLinkBank(false);   // Hide modal
+          fetchDashboardData()
+        }}
+        step={modalStep}
+        setStep={setModalStep}
+        connectedAccounts={connectedAccounts}
+      />
 
 
     </div>

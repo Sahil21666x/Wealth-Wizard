@@ -1,7 +1,11 @@
 {
+  "scripts": {
+    "start": "concurrently \"npm --prefix ./Frontend run dev\" \"npm --prefix ./Backend run dev\" "
+  },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
     "axios": "^1.10.0",
+    "concurrently": "^9.2.0",
     "express-rate-limit": "^7.5.1",
     "helmet": "^8.1.0",
     "mongoose": "^8.16.1",

@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -37,6 +36,10 @@ const userSchema = new mongoose.Schema({
       email: { type: Boolean, default: true },
       push: { type: Boolean, default: true },
       sms: { type: Boolean, default: false },
+      budgetAlerts: { type: Boolean, default: true },
+      goalReminders: { type: Boolean, default: true },
+      weeklyReports: { type: Boolean, default: false },
+      monthlyReports: { type: Boolean, default: true },
     },
     privacy: {
       dataSharing: { type: Boolean, default: false },
@@ -49,28 +52,36 @@ const userSchema = new mongoose.Schema({
   default: false,
 }
 ,
-  gamification: {
-    totalPoints: { type: Number, default: 0 },
-    level: { type: Number, default: 1 },
-    badges: [String],
-    streaks: {
-      currentSavingStreak: { type: Number, default: 0 },
-      longestSavingStreak: { type: Number, default: 0 },
-      budgetAdherenceStreak: { type: Number, default: 0 },
-    },
-    challenges: [{
-      id: String,
-      title: String,
-      description: String,
-      type: String,
-      target: Number,
-      progress: { type: Number, default: 0 },
-      completed: { type: Boolean, default: false },
-      startDate: Date,
-      endDate: Date,
-      reward: Number,
-    }],
-  },
+pushSubscription: {
+  endpoint: String,
+  keys: {
+    p256dh: String,
+    auth: String
+  }
+}
+
+  // gamification: {
+  //   totalPoints: { type: Number, default: 0 },
+  //   level: { type: Number, default: 1 },
+  //   badges: [String],
+  //   streaks: {
+  //     currentSavingStreak: { type: Number, default: 0 },
+  //     longestSavingStreak: { type: Number, default: 0 },
+  //     budgetAdherenceStreak: { type: Number, default: 0 },
+  //   },
+  //   challenges: [{
+  //     id: String,
+  //     title: String,
+  //     description: String,
+  //     type: String,
+  //     target: Number,
+  //     progress: { type: Number, default: 0 },
+  //     completed: { type: Boolean, default: false },
+  //     startDate: Date,
+  //     endDate: Date,
+  //     reward: Number,
+  //   }],
+  // },
 }, {
   timestamps: true,
 });

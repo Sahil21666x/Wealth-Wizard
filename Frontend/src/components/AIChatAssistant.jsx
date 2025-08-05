@@ -1,24 +1,26 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Send, Bot, User } from 'lucide-react';
+import { Send, Bot, User, Loader2 } from 'lucide-react';
+import { aiChatAPI } from '../lib/api';
 
 export default function AIChatAssistant() {
   const [messages, setMessages] = useState([
     {
       id: 1,
       type: 'assistant',
-      content: "Hi! I'm your AI financial assistant. I can help you understand your spending patterns, set goals, and provide personalized advice. What would you like to know about your finances?"
-    }
+      content:
+        "Hi! I'm your AI financial assistant. I can provide personalized advice based on your actual financial data. What would you like to know about your spending, goals, or financial situation?",
+    },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -26,60 +28,95 @@ export default function AIChatAssistant() {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage = {
-      id: messages.length + 1,
+      id: Date.now(),
       type: 'user',
-      content: input
+      content: input.trim(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input.trim();
     setInput('');
     setIsLoading(true);
+    setError(null);
 
-    // Simulate AI response (in real implementation, this would call your AI backend)
-    setTimeout(() => {
+    try {
+      const response = await aiChatAPI.sendMessage(currentInput);
+
       const assistantMessage = {
-        id: messages.length + 2,
+        id: Date.now() + 1,
         type: 'assistant',
-        content: generateAIResponse(input)
+        content: response.data.response,
       };
-      setMessages(prev => [...prev, assistantMessage]);
-      setIsLoading(false);
-    }, 1000);
-  };
 
-  const generateAIResponse = (userInput) => {
-    const lowerInput = userInput.toLowerCase();
-    
-    if (lowerInput.includes('budget') || lowerInput.includes('spending')) {
-      return "Based on your transaction history, I can see you're spending quite a bit on dining out. Consider setting a monthly budget of $300 for restaurants and meal planning for 2-3 days a week to save money.";
-    } else if (lowerInput.includes('save') || lowerInput.includes('goal')) {
-      return "Great question! I recommend the 50/30/20 rule: 50% for needs, 30% for wants, and 20% for savings. Based on your current income, you could save an additional $200-300 per month by optimizing your discretionary spending.";
-    } else if (lowerInput.includes('invest')) {
-      return "For investment advice, I'd recommend starting with your emergency fund first (3-6 months of expenses). Once that's established, consider low-cost index funds for long-term growth. Remember, I can help with budgeting, but consult a financial advisor for specific investment recommendations.";
-    } else {
-      return "I can help you with budgeting, expense tracking, setting financial goals, and analyzing your spending patterns. Try asking me about your budget, savings goals, or spending trends!";
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      setError('Failed to get response');
+
+      const errorMessage = {
+        id: Date.now() + 1,
+        type: 'assistant',
+        content:
+          "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.",
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const suggestedQuestions = [
+    'How am I doing with my budget this month?',
+    'What can I do to save more money?',
+    'How close am I to my savings goals?',
+    "What's my biggest spending category?",
+    'Give me tips to reduce expenses',
+  ];
+
+  const handleSuggestedQuestion = (question) => {
+    setInput(question);
+  };
+
   return (
-    <Card className="h-96 flex flex-col">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
+    <Card className="flex flex-col h-[500px] w-full max-w-2xl mx-auto shadow-md rounded-lg">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <Bot className="h-5 w-5 text-blue-600" />
           AI Financial Assistant
         </CardTitle>
+        {error && (
+          <div className="text-sm text-red-600 bg-red-50 px-2 py-1 rounded mt-2">
+            {error}
+          </div>
+        )}
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+
+      <CardContent className="flex flex-col flex-1 overflow-hidden">
+        {/* Messages container */}
+        <div className="flex-1 overflow-y-auto space-y-3 pr-1">
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex gap-2 ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${
+                message.type === 'user' ? 'justify-end' : 'justify-start'
+              }`}
             >
-              <div className={`flex gap-2 max-w-[80%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+              <div
+                className={`flex items-start gap-2 max-w-[80%] ${
+                  message.type === 'user' ? 'flex-row-reverse' : ''
+                }`}
+              >
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
                   {message.type === 'user' ? (
                     <User className="h-4 w-4 text-gray-600" />
@@ -88,7 +125,7 @@ export default function AIChatAssistant() {
                   )}
                 </div>
                 <div
-                  className={`p-3 rounded-lg text-sm ${
+                  className={`p-3 rounded-lg text-sm whitespace-pre-wrap ${
                     message.type === 'user'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-100 text-gray-900'
@@ -99,6 +136,7 @@ export default function AIChatAssistant() {
               </div>
             </div>
           ))}
+
           {isLoading && (
             <div className="flex gap-2 justify-start">
               <div className="flex gap-2 max-w-[80%]">
@@ -106,10 +144,9 @@ export default function AIChatAssistant() {
                   <Bot className="h-4 w-4 text-blue-600" />
                 </div>
                 <div className="p-3 rounded-lg text-sm bg-gray-100 text-gray-900">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Analyzing your financial data...</span>
                   </div>
                 </div>
               </div>
@@ -117,16 +154,46 @@ export default function AIChatAssistant() {
           )}
           <div ref={messagesEndRef} />
         </div>
-        <div className="flex gap-2">
+
+        {/* Suggested Questions */}
+        {messages.length === 1 && (
+          <div className="mt-2">
+            <p className="text-xs text-gray-500 mb-2">Try asking:</p>
+            <div className="flex flex-wrap gap-2">
+              {suggestedQuestions.slice(0, 2).map((question, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSuggestedQuestion(question)}
+                  className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full transition-colors"
+                  disabled={isLoading}
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Input Area */}
+        <div className="mt-3 flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask me about your finances..."
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Ask about your finances..."
+            onKeyPress={handleKeyPress}
             disabled={isLoading}
+            className="flex-1"
           />
-          <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
-            <Send className="h-4 w-4" />
+          <Button
+            onClick={handleSend}
+            disabled={isLoading || !input.trim()}
+            size="sm"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
       </CardContent>

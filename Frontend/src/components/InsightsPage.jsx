@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle, Info, TrendingUp, Brain, BarChart3, PieChart, DollarSign } from "lucide-react"
-import { insightsAPI } from "../lib/api"
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, CheckCircle, Info, TrendingUp, Brain, PieChart } from "lucide-react";
+import { insightsAPI } from "../lib/api";
 import {
   Pie,
   Cell,
@@ -16,74 +16,111 @@ import {
   Tooltip,
   LineChart,
   Line,
-} from "recharts"
-import AIChatAssistant from "./AIChatAssistant"
+} from "recharts";
+import AIChatAssistant from "./AIChatAssistant";
 
-const spendingByCategory = [
-  { name: "Food & Dining", value: 850, color: "#f97316" },
-  { name: "Transportation", value: 420, color: "#3b82f6" },
-  { name: "Shopping", value: 680, color: "#8b5cf6" },
-  { name: "Entertainment", value: 320, color: "#ec4899" },
-  { name: "Bills & Utilities", value: 1200, color: "#ef4444" },
-  { name: "Healthcare", value: 180, color: "#10b981" },
-]
-
-const monthlyTrends = [
-  { month: "Jul", spending: 3200, budget: 3500 },
-  { month: "Aug", spending: 3400, budget: 3500 },
-  { month: "Sep", spending: 3600, budget: 3500 },
-  { month: "Oct", spending: 3800, budget: 3500 },
-  { month: "Nov", spending: 3500, budget: 3500 },
-  { month: "Dec", spending: 3850, budget: 3500 },
-]
-
-const spendingTrend = [
-  { day: "Mon", amount: 45 },
-  { day: "Tue", amount: 78 },
-  { day: "Wed", amount: 32 },
-  { day: "Thu", amount: 95 },
-  { day: "Fri", amount: 120 },
-  { day: "Sat", amount: 85 },
-  { day: "Sun", amount: 65 },
-]
-
-const insights = [
-  {
-    type: "warning",
-    icon: AlertTriangle,
-    title: "Budget Exceeded",
-    description: "You've exceeded your monthly budget by $350 this month.",
-    recommendation: "Consider reducing dining out expenses or adjusting your budget.",
-    impact: "High",
-  },
-  {
-    type: "success",
-    icon: CheckCircle,
-    title: "Savings Goal Progress",
-    description: "You're 15% ahead of schedule on your Emergency Fund goal.",
-    recommendation: "Great job! Consider increasing your monthly contribution.",
-    impact: "Positive",
-  },
-  {
-    type: "info",
-    icon: Info,
-    title: "Subscription Analysis",
-    description: "You have 8 active subscriptions costing $127/month.",
-    recommendation: "Review and cancel unused subscriptions to save money.",
-    impact: "Medium",
-  },
-  {
-    type: "warning",
-    icon: TrendingUp,
-    title: "Increased Spending Pattern",
-    description: "Your shopping expenses increased by 40% compared to last month.",
-    recommendation: "Set a shopping budget limit to control expenses.",
-    impact: "Medium",
-  },
-]
+const COLORS = ['#f97316', '#3b82f6', '#8b5cf6', '#ec4899', '#ef4444', '#10b981'];
 
 export default function InsightsPage() {
-  const totalSpending = spendingByCategory.reduce((sum, item) => sum + item.value, 0)
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        const response = await insightsAPI.getInsightsDashboard();
+        console.log(response.data);
+        
+        setDashboardData(response.data);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError('Failed to load financial insights. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <AlertTriangle className="mx-auto h-12 w-12 text-orange-500" />
+        <h2 className="mt-4 text-xl font-semibold">Unable to load insights</h2>
+        <p className="mt-2 text-gray-600">{error}</p>
+        <Button className="mt-4" onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  if (!dashboardData) return null;
+
+  // Prepare data for charts
+  const spendingByCategory = dashboardData.categories.map((item, index) => ({
+    name: item._id,
+    value: item.totalAmount,
+    color: COLORS[index % COLORS.length]
+  }));
+
+  const totalSpending = spendingByCategory.reduce((sum, item) => sum + item.value, 0);
+
+  const weeklyTrendData = dashboardData.weeklyTrends.map(item => ({
+    day: item.period.split(' ')[1], // Extract day from "MMM DD"
+    amount: item.amount
+  }));
+
+  const monthlyTrendData = dashboardData.monthlyTrends.map(item => ({
+    month: item.month,
+    income: item.income,
+    expenses: item.expenses
+  }));
+
+  // Combine all insights
+  const allInsights = [
+    {
+      type: dashboardData.insights.spendingChange > 0 ? 'warning' : 'success',
+      icon: dashboardData.insights.spendingChange > 0 ? TrendingUp : CheckCircle,
+      title: dashboardData.insights.spendingChange > 0 ? 'Spending Increased' : 'Spending Under Control',
+      description: `Your spending ${dashboardData.insights.spendingChange > 0 ? 'increased' : 'decreased'} by ${Math.abs(dashboardData.insights.spendingChange)}% compared to last month.`,
+      recommendation: dashboardData.insights.spendingChange > 0 
+        ? 'Review your recent expenses to identify areas for reduction.' 
+        : 'Great job maintaining your spending habits!',
+      impact: dashboardData.insights.spendingChange > 10 ? 'High' : 'Medium'
+    },
+    {
+      type: dashboardData.healthScore.netIncome > 0 ? 'success' : 'warning',
+      icon: dashboardData.healthScore.netIncome > 0 ? CheckCircle : AlertTriangle,
+      title: dashboardData.healthScore.netIncome > 0 ? 'Positive Cash Flow' : 'Negative Cash Flow',
+      description: `You ${dashboardData.healthScore.netIncome > 0 ? 'saved' : 'overspent'} ₹${Math.abs(dashboardData.healthScore.netIncome).toFixed(2)} this month.`,
+      recommendation: dashboardData.healthScore.netIncome > 0 
+        ? 'Consider allocating some of your surplus to savings or investments.' 
+        : 'Try to reduce expenses or increase income to balance your budget.',
+      impact: 'High'
+    },
+    ...dashboardData.tips.map(tip => ({
+      type: tip.priority === 'high' ? 'warning' : 'info',
+      icon: tip.priority === 'high' ? AlertTriangle : Info,
+      title: tip.category === 'Savings' ? 'Savings Goal' : `${tip.category} Spending`,
+      description: tip.message,
+      recommendation: tip.message.includes('Consider') ? 
+        tip.message.split('Consider')[1].trim() : 
+        'Review this area for potential improvements',
+      impact: tip.priority === 'high' ? 'High' : 'Medium'
+    }))
+  ];
 
   return (
     <div className="p-6 space-y-6">
@@ -97,7 +134,7 @@ export default function InsightsPage() {
 
       {/* Key Insights Cards */}
       <div className="grid gap-4 md:grid-cols-2">
-        {insights.map((insight, index) => (
+        {allInsights.slice(0, 4).map((insight, index) => (
           <Card key={index} className="relative">
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
@@ -158,7 +195,9 @@ export default function InsightsPage() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`$${value}`, "Amount"]} />
+                    <Tooltip 
+                      formatter={(value) => [`₹${value.toFixed(2)}`, "Amount"]} 
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -170,7 +209,7 @@ export default function InsightsPage() {
                       <span className="text-sm">{category.name}</span>
                     </div>
                     <div className="text-right">
-                      <span className="font-medium">${category.value}</span>
+                      <span className="font-medium">₹{category.value.toFixed(2)}</span>
                       <div className="text-xs text-gray-500">{Math.round((category.value / totalSpending) * 100)}%</div>
                     </div>
                   </div>
@@ -180,20 +219,22 @@ export default function InsightsPage() {
           </CardContent>
         </Card>
 
-        {/* Monthly Budget vs Spending */}
+        {/* Monthly Income vs Expenses */}
         <Card>
           <CardHeader>
-            <CardTitle>Budget vs Spending</CardTitle>
+            <CardTitle>Income vs Expenses</CardTitle>
             <CardDescription>Monthly comparison over time</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyTrends}>
+              <BarChart data={monthlyTrendData}>
                 <XAxis dataKey="month" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${value}`, ""]} />
-                <Bar dataKey="budget" fill="#e5e7eb" name="Budget" />
-                <Bar dataKey="spending" fill="#3b82f6" name="Spending" />
+                <Tooltip 
+                  formatter={(value) => [`₹${value.toFixed(2)}`, ""]} 
+                />
+                <Bar dataKey="income" fill="#10b981" name="Income" />
+                <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -208,10 +249,12 @@ export default function InsightsPage() {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={spendingTrend}>
+            <LineChart data={weeklyTrendData}>
               <XAxis dataKey="day" />
               <YAxis />
-              <Tooltip formatter={(value) => [`$${value}`, "Spent"]} />
+              <Tooltip 
+                formatter={(value) => [`₹${value.toFixed(2)}`, "Spent"]} 
+              />
               <Line
                 type="monotone"
                 dataKey="amount"
@@ -232,41 +275,47 @@ export default function InsightsPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center">
-            <div className="text-4xl font-bold text-green-600 mb-2">78/100</div>
-            <p className="text-gray-600">Good financial health</p>
+            <div className="text-4xl font-bold text-green-600 mb-2">
+              {dashboardData.healthScore.score}/100
+            </div>
+            <p className="text-gray-600">
+              {dashboardData.healthScore.score > 80 ? 'Excellent financial health' : 
+               dashboardData.healthScore.score > 60 ? 'Good financial health' : 
+               'Needs improvement'}
+            </p>
           </div>
 
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Savings Rate</span>
-                <span>26%</span>
+                <span>{dashboardData.healthScore.savingsRate}%</span>
               </div>
-              <Progress value={85} className="h-2" />
+              <Progress value={dashboardData.healthScore.savingsRate} className="h-2" />
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Budget Adherence</span>
-                <span>72%</span>
+                <span>{dashboardData.healthScore.budgetAdherence}%</span>
               </div>
-              <Progress value={72} className="h-2" />
+              <Progress value={dashboardData.healthScore.budgetAdherence} className="h-2" />
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Goal Progress</span>
-                <span>89%</span>
+                <span>{dashboardData.healthScore.goalProgress}%</span>
               </div>
-              <Progress value={89} className="h-2" />
+              <Progress value={dashboardData.healthScore.goalProgress} className="h-2" />
             </div>
 
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>Expense Control</span>
-                <span>65%</span>
+                <span>{dashboardData.healthScore.expenseControl}%</span>
               </div>
-              <Progress value={65} className="h-2" />
+              <Progress value={dashboardData.healthScore.expenseControl} className="h-2" />
             </div>
           </div>
         </CardContent>
@@ -288,19 +337,31 @@ export default function InsightsPage() {
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="text-center p-4 bg-green-50 rounded-lg">
                     <p className="text-sm text-green-600">Financial Health Score</p>
-                    <p className="text-3xl font-bold text-green-700">78/100</p>
-                    <p className="text-xs text-green-600">Good</p>
+                    <p className="text-3xl font-bold text-green-700">
+                      {dashboardData.healthScore.score}/100
+                    </p>
+                    <p className="text-xs text-green-600">
+                      {dashboardData.healthScore.score > 80 ? 'Excellent' : 
+                       dashboardData.healthScore.score > 60 ? 'Good' : 'Fair'}
+                    </p>
                   </div>
                   <div className="text-center p-4 bg-blue-50 rounded-lg">
                     <p className="text-sm text-blue-600">Savings Rate</p>
-                    <p className="text-3xl font-bold text-blue-700">23%</p>
-                    <p className="text-xs text-blue-600">Above Average</p>
+                    <p className="text-3xl font-bold text-blue-700">
+                      {dashboardData.healthScore.savingsRate}%
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      {dashboardData.healthScore.savingsRate > 20 ? 'Excellent' : 
+                       dashboardData.healthScore.savingsRate > 10 ? 'Good' : 'Needs Improvement'}
+                    </p>
                   </div>
                 </div>
                 <div className="p-4 bg-yellow-50 rounded-lg">
                   <h4 className="font-medium text-yellow-800 mb-2">💡 Key Recommendation</h4>
                   <p className="text-sm text-yellow-700">
-                    Your spending is well-controlled, but you could optimize your dining expenses to boost savings by an additional 5%.
+                    {dashboardData.healthScore.netIncome > 0 ? 
+                      `You're saving ₹${dashboardData.healthScore.netIncome.toFixed(2)} monthly. Consider investing a portion for better returns.` : 
+                      `You're overspending by ₹${Math.abs(dashboardData.healthScore.netIncome).toFixed(2)}. Focus on reducing expenses in your top categories.`}
                   </p>
                 </div>
               </div>
@@ -312,5 +373,5 @@ export default function InsightsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

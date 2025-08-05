@@ -3,18 +3,21 @@ const axios = require('axios');
 const authMiddleware = require('../middleware/auth');
 const User = require('../models/User');
 const Account = require('../models/Account');
+const indianBanks = require('../services/mockBanks');
 
 const router = express.Router();
-
-
-// Indian Banks API base URL
-const INDIAN_BANKS_API_BASE = process.env.INDIAN_BANKS_API_URL || 'http://localhost:5001/api';
 
 // Get all banks
 router.get('/banks', async (req, res) => {
   try {
-    const response = await axios.get(`${INDIAN_BANKS_API_BASE}/banks`);
-    res.json(response.data);
+    const banks = indianBanks.map(bank => ({
+      id: bank.id,
+      name: bank.name,
+      code: bank.code,
+      type: bank.type,
+      logo: bank.logo
+    }));
+    res.json(banks);
   } catch (error) {
     console.error('Error fetching banks:', error);
 
@@ -33,8 +36,8 @@ router.get('/banks', async (req, res) => {
 
 //get accounts
 
-router.get('/accounts',authMiddleware, async(req,res)=>{
-       try {
+router.get('/accounts', authMiddleware, async (req, res) => {
+  try {
     const userId = req.user._id; // Assuming auth middleware attaches user
 
     const accounts = await Account.find({ userId });
@@ -55,8 +58,11 @@ router.get('/accounts',authMiddleware, async(req,res)=>{
 // Get bank branches
 router.get('/banks/:bankId/branches', authMiddleware, async (req, res) => {
   try {
-    const response = await axios.get(`${INDIAN_BANKS_API_BASE}/banks/${req.params.bankId}/branches`);
-    res.json(response.data);
+    const bank = indianBanks.find(b => b.id === req.params.bankId);
+    if (!bank) {
+      return res.status(404).json({ message: 'Bank not found' });
+    }
+    res.json({ branches: bank.branches });
   } catch (error) {
     console.error('Error fetching branches:', error);
     res.status(500).json({ message: 'Error fetching branches' });
@@ -66,8 +72,19 @@ router.get('/banks/:bankId/branches', authMiddleware, async (req, res) => {
 // Search banks
 router.get('/banks/search/:query', authMiddleware, async (req, res) => {
   try {
-    const response = await axios.get(`${INDIAN_BANKS_API_BASE}/banks/search/${req.params.query}`);
-    res.json(response.data);
+    const query = req.params.query.toLowerCase();
+    const filteredBanks = indianBanks.filter(bank =>
+      bank.name.toLowerCase().includes(query) ||
+      bank.code.toLowerCase().includes(query)
+    ).map(bank => ({
+      id: bank.id,
+      name: bank.name,
+      code: bank.code,
+      type: bank.type,
+      logo: bank.logo
+    }));
+
+    res.json({ banks: filteredBanks });
   } catch (error) {
     console.error('Error searching banks:', error);
     res.status(500).json({ message: 'Error searching banks' });
@@ -76,12 +93,11 @@ router.get('/banks/search/:query', authMiddleware, async (req, res) => {
 
 //add bank account
 
-router.post('/add-linked-accounts',authMiddleware, async (req, res) => {
+router.post('/add-linked-accounts', authMiddleware, async (req, res) => {
   try {
-    const { bankName, accountNumber, accountType, ifsc, accountHolderName } = req.body;
-    console.log(req.body,"body");
-    
-    const userId = req.user._id; // assuming user is attached via middleware
+    const { bankName, accountNumber, accountType, ifsc, accountHolderName, accountId, isPrimary } = req.body;
+
+    const userId = req.user._id;
 
     // Check if the account is already added by this user
     const existingAccount = await Account.findOne({
@@ -96,15 +112,17 @@ router.post('/add-linked-accounts',authMiddleware, async (req, res) => {
         message: 'This bank account is already linked to your profile.',
       });
     }
- //Mockingly adding balances
-   const balances= {
-          available: Math.floor(Math.random() * 100000) + 10000,
-          current: Math.floor(Math.random() * 100000) + 10000
-        }
+    //Mockingly adding balances
+    const balances = {
+      available: Math.floor(Math.random() * 100000) + 10000,
+      current: Math.floor(Math.random() * 100000) + 10000
+    }
 
     const newAccount = new Account({
       userId,
       bankName,
+      accountId,
+      isPrimary,
       accountNumber,
       accountType,
       ifsc,
@@ -130,19 +148,17 @@ router.post('/add-linked-accounts',authMiddleware, async (req, res) => {
 
 //remove Bank Account
 
-router.post('/users/removeBankAccount', async(req,res)=>{
-          try {
-    const userId = req.user.id;
-    const { accountId } = req.params;
+router.post('/users/removeBankAccount/:accountId', async (req, res) => {
+  try {
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
+    const accountId = req.params.accountId;
 
-    user.linkedAccounts = user.linkedAccounts.filter(acc => acc.accountId !== accountId);
 
-    await user.save();
+    const accDeleted = await Account.deleteOne({ accountId: accountId })
+    if (!accDeleted) return res.status(404).json({ message: 'User not found' });
 
-    res.status(200).json({ message: 'Bank account removed successfully', accounts: user.linkedAccounts });
+
+    res.status(200).json({ message: 'Bank account removed successfully', account: accDeleted });
 
   } catch (err) {
     console.error(err);
@@ -150,5 +166,45 @@ router.post('/users/removeBankAccount', async(req,res)=>{
   }
 })
 
+router.post("/setPrimary", authMiddleware, async (req, res) => {
+  try {
+    const accountId = req.body.accountId;
+    const userId = req.user._id;
+
+    // console.log(req.body, "body");
+
+
+    // Step 1: Reset all accounts to not primary
+    await Account.updateMany({ userId }, { $set: { isPrimary: false } });
+
+    // Step 2: Set the selected account as primary
+    const primaryAc = await Account.updateOne(
+      { userId, accountId },
+      { $set: { isPrimary: true } }
+    );
+
+    return res.status(200).json({ message: "Primary account set", primaryAc });
+  } catch (err) {
+    console.error("Set primary error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+
+router.get('/getPrimary', authMiddleware, async (req, res) => {
+
+  try {
+    const userId = req.user._id
+
+    const primaryAc = await Account.find({ userId: userId, isPrimary: true })
+
+    if (!primaryAc) res.status(500).json({ message: "Internal server error" })
+
+    res.json(primaryAc)
+
+  } catch (err) {
+    res.status(400).json({ message: "No primary Account Exists" })
+  }
+})
 
 module.exports = router;

@@ -20,9 +20,13 @@ const goalSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  monthlyContribution: {
+    type: Number,
+    default: 0,
+  },
   category: {
     type: String,
-    enum: ['emergency', 'vacation', 'home', 'car', 'education', 'retirement', 'other'],
+    enum: ["Emergency", "Travel", "Transportation", "Housing", "Education", "Investment","Vacation", "Retirement", "Other"],
     required: true,
   },
   targetDate: Date,
@@ -45,6 +49,7 @@ const goalSchema = new mongoose.Schema({
       default: 'monthly',
     },
   },
+
   milestones: [{
     amount: Number,
     achieved: { type: Boolean, default: false },

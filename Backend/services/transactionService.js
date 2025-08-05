@@ -1,3 +1,4 @@
+//to generate Mock Transactions
 
 const categoryMapping = {
   // Food & Dining

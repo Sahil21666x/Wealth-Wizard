@@ -7,6 +7,10 @@ const accountSchema = new mongoose.Schema({
     required: true,
   },
   accountNumber: String,
+  accountId: {
+      type: String,
+      required : true
+  },
   ifsc: String,
   bankName: String,
   type: String,         // savings, current, etc.

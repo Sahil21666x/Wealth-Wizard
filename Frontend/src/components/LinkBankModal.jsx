@@ -6,8 +6,11 @@ import { Label } from './ui/label';
 import { Card, CardContent } from './ui/card';
 import { Shield, CreditCard, CheckCircle, AlertCircle, Search, Building2 } from 'lucide-react';
 import { indianBanksAPI, plaidAPI } from '../lib/api';
+import { v4 as uuidv4 } from 'uuid';
 
-export default function LinkBankModal({ isOpen, onClose, onAccountLinked, step, setStep }) {
+
+
+export default function LinkBankModal({ isOpen, onClose, step, setStep , connectedAccounts }) {
 //   useEffect(() => {
 //   console.log("MODAL MOUNTED");
 //   return () => {
@@ -38,7 +41,9 @@ export default function LinkBankModal({ isOpen, onClose, onAccountLinked, step, 
     try {
       setLoading(true);
       const response = await indianBanksAPI.getBanks();
-      setBanks(response.data.banks || []);
+      console.log(response);
+      
+      setBanks(response.data || []);
     } catch (error) {
       console.error('Error fetching banks:', error);
       // Fallback to static banks if API fails
@@ -85,9 +90,10 @@ export default function LinkBankModal({ isOpen, onClose, onAccountLinked, step, 
 
   const handleConnect = async () => {
     try {
+      
       setLoading(true);
    
-
+      const accountId = uuidv4(); 
       // Create link token
       const linkTokenResponse = await plaidAPI.createLinkToken();
 
@@ -103,30 +109,22 @@ export default function LinkBankModal({ isOpen, onClose, onAccountLinked, step, 
       });
       console.log("exch res :",exchangeResponse);    // bankName, accountNumber, accountType, ifscCode, accountHolderName
         
-      console.log(selectedBank,selectedBranch,"details");
+      // console.log(selectedBank,selectedBranch,"details");
+      console.log(connectedAccounts,"con ac");
+      
       
         await indianBanksAPI.addAccount({
           bankName: selectedBank.name,
           branchName: selectedBranch.name,
           accountNumber: credentials.accountNumber.slice(-4),
-          ifsc: selectedBranch.ifsc
+          ifsc: selectedBranch.ifsc,
+          isPrimary : connectedAccounts.length===0 ,
+          accountId : accountId
         })
       
 
       setStep(4);
-      
-
-      // Notify parent component that account was linked
-      if (onAccountLinked) {
-        console.log("code reached in inside");
-        
-        onAccountLinked({
-          bankName: selectedBank.name,
-          branchName: selectedBranch.name,
-          accountNumber: credentials.accountNumber.slice(-4),
-          ifsc: selectedBranch.ifsc
-        });
-      }
+    
     } catch (error) {
       console.error('Error linking account:', error);
       alert('Failed to link account. Please try again.');

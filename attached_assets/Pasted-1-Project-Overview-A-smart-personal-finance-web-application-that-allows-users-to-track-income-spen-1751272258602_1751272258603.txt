@@ -72,7 +72,7 @@ Week 16	Final testing, bug fixing, deployment
 9. APIs & Integrations
 Plaid API: For bank account linking and transactions.
 
-OpenAI / TensorFlow.js: For financial pattern analysis.
+OpenAI : For financial pattern analysis.
 
 Chart.js / Recharts: For visualization.
 

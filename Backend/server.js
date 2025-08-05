@@ -2,8 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const cron = require('node-cron');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -27,7 +25,7 @@ app.use(helmet());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 200 // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
@@ -43,6 +41,8 @@ const transactionRoutes = require('./routes/transactions');
 const goalRoutes = require('./routes/goals');
 const insightRoutes = require('./routes/insights');
 const bankRoutes = require('./routes/plaid')
+const notificationRoutes = require('./routes/notifications');
+const aiChatRoutes = require('./routes/aiChatBot')
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -51,6 +51,11 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/insights', insightRoutes);
 app.use('/api/indian-banks', require('./routes/indianBanks'));
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/ai', aiChatRoutes);
+
+
 
 // Health check
 app.get('/api/health', (req, res) => {
